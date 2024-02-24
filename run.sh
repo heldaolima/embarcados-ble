@@ -1,8 +1,9 @@
 #!/bin/bash
 
-BOARD="nrf52_dk"
-CENTRAL_BIN="$(pwd)/central/.pio/build/$BOARD/firmware.elf"
-PERIPHERAL_BIN="$(pwd)/peripheral/.pio/build/$BOARD/firmware.elf"
+BOARD="nrf52840"
+FOLDER="nrf52840_dk"
+CENTRAL_BIN="$(pwd)/central/.pio/build/$FOLDER/firmware.elf"
+PERIPHERAL_BIN="$(pwd)/peripheral/.pio/build/$FOLDER/firmware.elf"
 
 renode -e \
     "using sysbus
