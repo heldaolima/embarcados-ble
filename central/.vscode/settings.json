@@ -1,5 +1,11 @@
 {
     "files.associations": {
-        "bluetooth.h": "c"
+        "bluetooth.h": "c",
+        "byteorder.h": "c",
+        "types.h": "c",
+        "gatt_operations.h": "c",
+        "zephyr.h": "c",
+        "console.h": "c",
+        "printk.h": "c"
     }
 }

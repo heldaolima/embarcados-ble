@@ -2,8 +2,8 @@
 
 BOARD="nrf52840"
 FOLDER="nrf52840_dk"
-CENTRAL_BIN="$(pwd)/central/.pio/build/$FOLDER/firmware.elf"
-PERIPHERAL_BIN="$(pwd)/peripheral/.pio/build/$FOLDER/firmware.elf"
+CENTRAL_BIN="./central/.pio/build/$FOLDER/firmware.elf"
+PERIPHERAL_BIN="./peripheral/.pio/build/$FOLDER/firmware.elf"
 
 renode -e \
     "using sysbus
