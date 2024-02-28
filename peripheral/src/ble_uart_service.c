@@ -1,4 +1,5 @@
 #include <ble_uart_service.h>
+#include <case_converter.h>
 
 static ble_uart_service_rx_callback rx_callback = NULL;
 #define BLE_UART_SERVICE_TX_CHAR_OFFSET    3
@@ -88,7 +89,9 @@ int ble_uart_service_transmit(const uint8_t *buffer, size_t len)
 
     struct bt_conn *conn = ble_get_connection_ref();
 
-    uint8_t string = *buffer;
+    uint8_t string[len + 1];
+    convert_to_uppercase(buffer, string, len);
+
     if(conn)
        return (bt_gatt_notify(conn, &attrs[2], string, len));
     else
