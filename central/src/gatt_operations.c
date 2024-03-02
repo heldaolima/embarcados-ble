@@ -5,9 +5,15 @@ CFLAG(subscribed_f);
 CFLAG(discover_f);
 CFLAG(cwrite_f);
 
-static struct bt_uuid_128 ble_upper = BT_UUID_INIT_128(0x01, 0x23, 0x45, 0x67, 0x89, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00, 0x00);
-static struct bt_uuid_128 ble_receive = BT_UUID_INIT_128(0x01, 0x23, 0x45, 0x67, 0x89, 0x01, 0x02, 0x03,0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0xFF, 0x00);
-static struct bt_uuid_128 ble_notify = BT_UUID_INIT_128(0x01, 0x23, 0x45, 0x67, 0x89, 0x01, 0x02, 0x03,0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0xFF, 0x11);
+static struct bt_uuid_128 ble_upper = BT_UUID_INIT_128(
+    0x01, 0x23, 0x45, 0x67, 0x89, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00, 0x00
+);
+static struct bt_uuid_128 ble_receive = BT_UUID_INIT_128(
+    0x01, 0x23, 0x45, 0x67, 0x89, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0xFF, 0x00
+);
+static struct bt_uuid_128 ble_notify = BT_UUID_INIT_128(
+    0x01, 0x23, 0x45, 0x67, 0x89, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0xFF, 0x11
+);
 
 uint16_t chrc_h;
 static uint16_t notify_h;
@@ -24,8 +30,24 @@ static struct bt_gatt_subscribe_params sub_params = {
 	.value = BT_GATT_CCC_NOTIFY,
 };
 
-uint8_t discover(struct bt_conn *conn, const struct bt_gatt_attr *attr, struct bt_gatt_discover_params *params)
+void setDiscoverCharacteristics(
+    struct bt_gatt_discover_params *params,
+    uint16_t handle)
 {
+    params->uuid = NULL;
+    params->start_handle = handle + 1;
+    params->type = BT_GATT_DISCOVER_CHARACTERISTIC;
+}
+
+bool isDiscoveringPrimary(uint8_t type) {
+   return type == BT_GATT_DISCOVER_PRIMARY;
+}
+
+uint8_t discover( // will discover GATT attributes
+    struct bt_conn *conn, 
+    const struct bt_gatt_attr *attr, 
+    struct bt_gatt_discover_params *params
+    ) {
     int err;
 
     if (attr == NULL) {
@@ -39,16 +61,16 @@ uint8_t discover(struct bt_conn *conn, const struct bt_gatt_attr *attr, struct b
     }
 
     printk("[ATTRIBUTE] handle %u\n", attr->handle);
-    if (params->type == BT_GATT_DISCOVER_PRIMARY && bt_uuid_cmp(params->uuid, &ble_upper.uuid) == 0) {
+    if (isDiscoveringPrimary(params->type) && bt_uuid_cmp(params->uuid, &ble_upper.uuid) == 0) {
         printk("Found service\n");
-        params->uuid = NULL;
-        params->start_handle = attr->handle + 1;
-        params->type = BT_GATT_DISCOVER_CHARACTERISTIC;
+
+        setDiscoverCharacteristics(params, attr->handle);
 
         err = bt_gatt_discover(conn, params);
         if (err != 0) {
             printk("Discover failed (err %d)\n", err);
         }
+
         return BT_GATT_ITER_STOP;
     } else if (params->type == BT_GATT_DISCOVER_CHARACTERISTIC) {
         struct bt_gatt_chrc *chrc = (struct bt_gatt_chrc *)attr->user_data;
@@ -64,32 +86,30 @@ uint8_t discover(struct bt_conn *conn, const struct bt_gatt_attr *attr, struct b
     return BT_GATT_ITER_CONTINUE;
 }
 
-void subscribe(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params)
-{
-    if (err)
-    {
+void subscribe(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params) {
+    if (err) {
         printk("Subscribe failed (err %d)\n", err);
     }
 
     SFLAG(subscribed_f);
 
-    if (!params) 
-    {
+    if (!params) {
         printk("params NULL\n");
         return;
     }
 
-    if (params->handle == notify_h)
-    {
+    if (params->handle == notify_h) {
         printk("Subscribed to characteristic\n");
     }
-    else
-    {
+    else {
         printk("Unknown handle %d\n", params->handle);
     }
 }
 
-uint8_t notify(struct bt_conn *conn, struct bt_gatt_subscribe_params *params, const void *data, uint16_t len) 
+uint8_t notify( // notification received
+    struct bt_conn *conn,
+    struct bt_gatt_subscribe_params *params,
+    const void *data, uint16_t len)
 {
     printk("\nReceived notification #%u with length %d\n", num_not++, len);
 
@@ -104,8 +124,7 @@ uint8_t notify(struct bt_conn *conn, struct bt_gatt_subscribe_params *params, co
     return BT_GATT_ITER_CONTINUE;
 }
 
-void gatt_subscribe(void)
-{
+void gatt_subscribe(void) {
 	int err;
 	UFLAG(subscribed_f);
 
@@ -121,17 +140,20 @@ void gatt_subscribe(void)
 	WFLAG(subscribed_f);
 }
 
+void setDiscoverParams(struct bt_gatt_discover_params* params) {
+	params->uuid = primary_uuid;
+	params->func = discover;
+	params->start_handle = BT_ATT_FIRST_ATTRIBUTE_HANDLE;
+	params->end_handle = BT_ATT_LAST_ATTRIBUTE_HANDLE;
+	params->type = BT_GATT_DISCOVER_PRIMARY;
+}
 
-void gatt_discover(void)
-{
+
+void gatt_discover(void) {
 	printk("Discovering services and characteristics\n");
 	static struct bt_gatt_discover_params discover_params;
 
-	discover_params.uuid = primary_uuid;
-	discover_params.func = discover;
-	discover_params.start_handle = BT_ATT_FIRST_ATTRIBUTE_HANDLE;
-	discover_params.end_handle = BT_ATT_LAST_ATTRIBUTE_HANDLE;
-	discover_params.type = BT_GATT_DISCOVER_PRIMARY;
+    setDiscoverParams(&discover_params);
 
     if (bt_gatt_discover(default_conn, &discover_params)) {
         printk("Discover failed\n");
@@ -151,13 +173,11 @@ void gatt_write_cb(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_param
     SFLAG(cwrite_f);
 }
 
-void gatt_write(uint16_t handle, char* chrc_data)
-{
+void gatt_write(uint16_t handle, char* chrc_data) {
     static struct bt_gatt_write_params write_params;
     int err;
 
-    if (handle == chrc_h)
-    {
+    if (handle == chrc_h) {
         printk("Writing to chrc\n");
 
         write_params.data = chrc_data;

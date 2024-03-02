@@ -7,11 +7,12 @@
 #include <sys/byteorder.h>
 #include <zephyr.h>
 #include <kernel.h>
-#include <ble_application.h>
-#include <ble_uart_service.h>
+
+#include "ble_application.h"
+#include "ble_uart_service.h"
 
 static void on_ble_rx_data(const uint8_t *buffer, size_t len) {
-  ble_uart_service_transmit(buffer, len);
+  uartTransmit(buffer, len);
 }
 
 static void on_ble_stack_ready(struct bt_conn *conn) {
@@ -20,5 +21,5 @@ static void on_ble_stack_ready(struct bt_conn *conn) {
 }
 
 void main(void) {
-  ble_application_start(on_ble_stack_ready);
+  startBluetooth(on_ble_stack_ready);
 }

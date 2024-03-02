@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _ble_application_h
+#define _ble_application_h
 
 #include <zephyr/types.h>
 #include <stddef.h>
@@ -19,9 +20,11 @@
 typedef enum {
     kBleConnected,
     kBleDisconnected,
-}ble_status;
+} ble_status;
 
 typedef void (*ble_ready_callback) (struct bt_conn *connection);
 
-uint32_t ble_application_start(ble_ready_callback callback);
-struct bt_conn *ble_get_connection_ref();
+uint32_t startBluetooth(ble_ready_callback callback);
+struct bt_conn *getConnection();
+
+#endif
